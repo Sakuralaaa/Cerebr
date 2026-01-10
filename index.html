@@ -172,6 +172,14 @@
                             <label data-i18n="model_name_label">Model Name</label>
                             <input type="text" class="model-name" placeholder="输入模型名称" data-i18n-attr="placeholder:model_name_placeholder">
                         </div>
+                        <div class="form-group">
+                            <label data-i18n="api_format_label">API Format</label>
+                            <select class="api-format" aria-label="API Format" data-i18n-attr="aria-label:api_format_aria">
+                                <option value="openai" data-i18n="api_format_openai">OpenAI Compatible</option>
+                                <option value="gemini" data-i18n="api_format_gemini">Google Gemini</option>
+                                <option value="claude" data-i18n="api_format_claude">Anthropic Claude</option>
+                            </select>
+                        </div>
                         <div class="advanced-settings">
                             <div class="advanced-settings-header" tabindex="0">
                                 <span data-i18n="api_advanced_settings">高级设置</span>

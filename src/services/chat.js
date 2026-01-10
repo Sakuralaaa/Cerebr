@@ -4,6 +4,7 @@
  * @property {string} baseUrl - API的基础URL
  * @property {string} apiKey - API密钥
  * @property {string} [modelName] - 模型名称，默认为 "gpt-4o"
+ * @property {string} [apiFormat] - API格式 ("openai" | "gemini" | "claude")
  */
 
 import { normalizeChatCompletionsUrl } from '../utils/api-url.js';
@@ -32,6 +33,134 @@ import { t } from '../utils/i18n.js';
  * @property {string} userLanguage - 用户语言
  * @property {WebpageInfo} [webpageInfo] - 网页信息（可选）
  */
+
+/**
+ * 检测API格式（从URL推断）
+ * @param {string} baseUrl - API基础URL
+ * @param {string} [explicitFormat] - 显式指定的格式
+ * @returns {string} API格式 ("openai" | "gemini" | "claude")
+ */
+function detectApiFormat(baseUrl, explicitFormat) {
+    if (explicitFormat && ['openai', 'gemini', 'claude'].includes(explicitFormat)) {
+        return explicitFormat;
+    }
+    
+    const url = baseUrl.toLowerCase();
+    
+    // Gemini API detection
+    if (url.includes('generativelanguage.googleapis.com') || 
+        url.includes('aiplatform.googleapis.com') ||
+        url.includes('gemini')) {
+        return 'gemini';
+    }
+    
+    // Claude/Anthropic API detection
+    if (url.includes('anthropic.com') || 
+        url.includes('claude') ||
+        url.includes('api.anthropic')) {
+        return 'claude';
+    }
+    
+    // Default to OpenAI format
+    return 'openai';
+}
+
+/**
+ * 转换消息为Gemini格式
+ * @param {Array<Message>} messages - OpenAI格式的消息
+ * @returns {Object} Gemini格式的请求体内容
+ */
+function convertToGeminiFormat(messages) {
+    const contents = [];
+    let systemInstruction = null;
+    
+    for (const msg of messages) {
+        if (msg.role === 'system') {
+            systemInstruction = { parts: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }] };
+            continue;
+        }
+        
+        const role = msg.role === 'assistant' ? 'model' : 'user';
+        const parts = [];
+        
+        if (typeof msg.content === 'string') {
+            parts.push({ text: msg.content });
+        } else if (Array.isArray(msg.content)) {
+            for (const item of msg.content) {
+                if (item.type === 'text') {
+                    parts.push({ text: item.text });
+                } else if (item.type === 'image_url' && item.image_url?.url) {
+                    // Handle base64 images for Gemini
+                    const dataUrl = item.image_url.url;
+                    if (dataUrl.startsWith('data:')) {
+                        const [header, base64] = dataUrl.split(',');
+                        const mimeType = header.match(/data:([^;]+)/)?.[1] || 'image/png';
+                        parts.push({
+                            inline_data: {
+                                mime_type: mimeType,
+                                data: base64
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        
+        if (parts.length > 0) {
+            contents.push({ role, parts });
+        }
+    }
+    
+    return { contents, systemInstruction };
+}
+
+/**
+ * 转换消息为Claude格式
+ * @param {Array<Message>} messages - OpenAI格式的消息
+ * @returns {Object} Claude格式的请求体内容
+ */
+function convertToClaudeFormat(messages) {
+    const claudeMessages = [];
+    let system = '';
+    
+    for (const msg of messages) {
+        if (msg.role === 'system') {
+            system += (system ? '\n\n' : '') + (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+            continue;
+        }
+        
+        const content = [];
+        if (typeof msg.content === 'string') {
+            content.push({ type: 'text', text: msg.content });
+        } else if (Array.isArray(msg.content)) {
+            for (const item of msg.content) {
+                if (item.type === 'text') {
+                    content.push({ type: 'text', text: item.text });
+                } else if (item.type === 'image_url' && item.image_url?.url) {
+                    const dataUrl = item.image_url.url;
+                    if (dataUrl.startsWith('data:')) {
+                        const [header, base64] = dataUrl.split(',');
+                        const mediaType = header.match(/data:([^;]+)/)?.[1] || 'image/png';
+                        content.push({
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: mediaType,
+                                data: base64
+                            }
+                        });
+                    }
+                }
+            }
+        }
+        
+        if (content.length > 0) {
+            claudeMessages.push({ role: msg.role, content });
+        }
+    }
+    
+    return { messages: claudeMessages, system };
+}
 
 /**
  * 调用API发送消息并处理响应
@@ -102,10 +231,81 @@ export async function callAPI({
         signal
     };
 
+    // 检测API格式
+    const apiFormat = detectApiFormat(baseUrl, apiConfig?.apiFormat);
+    
+    // 根据API格式构建请求
+    let requestUrl = baseUrl;
+    let finalRequestInit = requestInit;
+    
+    if (apiFormat === 'gemini') {
+        // Gemini API格式
+        const modelName = apiConfig.modelName || 'gemini-1.5-flash';
+        const { contents, systemInstruction } = convertToGeminiFormat(processedMessages);
+        
+        // Gemini API URL格式: https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent
+        if (!requestUrl.includes(':streamGenerateContent') && !requestUrl.includes(':generateContent')) {
+            requestUrl = requestUrl.replace(/\/v1\/chat\/completions\/?$/, '');
+            requestUrl = requestUrl.replace(/\/?$/, '');
+            if (!requestUrl.includes('/models/')) {
+                requestUrl = `${requestUrl}/v1beta/models/${modelName}:streamGenerateContent`;
+            } else {
+                requestUrl = `${requestUrl}:streamGenerateContent`;
+            }
+        }
+        // Add API key as query parameter
+        const urlObj = new URL(requestUrl);
+        urlObj.searchParams.set('key', apiConfig.apiKey);
+        urlObj.searchParams.set('alt', 'sse');
+        requestUrl = urlObj.toString();
+        
+        finalRequestInit = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contents,
+                ...(systemInstruction && { systemInstruction }),
+                generationConfig: {
+                    temperature: 1,
+                    maxOutputTokens: 8192
+                }
+            }),
+            signal
+        };
+    } else if (apiFormat === 'claude') {
+        // Claude/Anthropic API格式
+        const { messages: claudeMessages, system } = convertToClaudeFormat(processedMessages);
+        
+        // Claude API URL格式: https://api.anthropic.com/v1/messages
+        if (!requestUrl.includes('/messages')) {
+            requestUrl = requestUrl.replace(/\/v1\/chat\/completions\/?$/, '/v1/messages');
+        }
+        
+        finalRequestInit = {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': apiConfig.apiKey,
+                'anthropic-version': '2023-06-01',
+                'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+                model: apiConfig.modelName || 'claude-3-5-sonnet-20241022',
+                messages: claudeMessages,
+                ...(system && { system }),
+                max_tokens: 8192,
+                stream: true
+            }),
+            signal
+        };
+    }
+
     const processStream = async () => {
         let reader;
         try {
-            const response = await fetch(baseUrl, requestInit);
+            const response = await fetch(requestUrl, finalRequestInit);
 
             if (!response.ok) {
                 const errorText = await response.text().catch(() => '');
@@ -179,16 +379,40 @@ export async function callAPI({
                         }
 
                         try {
-                            const delta = JSON.parse(data).choices[0]?.delta;
+                            const parsed = JSON.parse(data);
                             let hasUpdate = false;
-
-                            if (delta?.content) {
-                                currentMessage.content += delta.content;
-                                hasUpdate = true;
-                            }
-                            if (delta?.reasoning_content) {
-                                currentMessage.reasoning_content += delta.reasoning_content;
-                                hasUpdate = true;
+                            
+                            // Parse based on API format
+                            if (apiFormat === 'gemini') {
+                                // Gemini SSE format
+                                const candidates = parsed.candidates;
+                                if (candidates && candidates[0]?.content?.parts) {
+                                    for (const part of candidates[0].content.parts) {
+                                        if (part.text) {
+                                            currentMessage.content += part.text;
+                                            hasUpdate = true;
+                                        }
+                                    }
+                                }
+                            } else if (apiFormat === 'claude') {
+                                // Claude SSE format
+                                if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
+                                    currentMessage.content += parsed.delta.text;
+                                    hasUpdate = true;
+                                } else if (parsed.type === 'message_delta' && parsed.delta?.stop_reason) {
+                                    // Message complete
+                                }
+                            } else {
+                                // OpenAI format (default)
+                                const delta = parsed.choices?.[0]?.delta;
+                                if (delta?.content) {
+                                    currentMessage.content += delta.content;
+                                    hasUpdate = true;
+                                }
+                                if (delta?.reasoning_content) {
+                                    currentMessage.reasoning_content += delta.reasoning_content;
+                                    hasUpdate = true;
+                                }
                             }
 
                             if (hasUpdate) {

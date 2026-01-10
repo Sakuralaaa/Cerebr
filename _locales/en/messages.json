@@ -40,6 +40,11 @@
   "api_delete_config_aria": { "message": "Delete this config" },
   "api_advanced_settings": { "message": "Advanced settings" },
   "api_system_prompt_label": { "message": "System prompt" },
+  "api_format_label": { "message": "API Format" },
+  "api_format_aria": { "message": "API format selection" },
+  "api_format_openai": { "message": "OpenAI Compatible" },
+  "api_format_gemini": { "message": "Google Gemini" },
+  "api_format_claude": { "message": "Anthropic Claude" },
 
   "title_preferences": { "message": "Preferences" },
   "preferences_version": { "message": "Version" },
