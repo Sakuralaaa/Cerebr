@@ -118,5 +118,6 @@
   "error_read_image_failed": { "message": "Failed to read image" },
   "error_parse_image_failed": { "message": "Failed to parse image" },
   "error_not_image_file": { "message": "Not an image file" },
-  "error_image_too_large": { "message": "Image is too large. Please compress or crop it before sending." }
+  "error_image_too_large": { "message": "Image is too large. Please compress or crop it before sending." },
+  "timestamp_yesterday": { "message": "Yesterday" }
 }

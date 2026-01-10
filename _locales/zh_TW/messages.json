@@ -118,5 +118,6 @@
   "error_read_image_failed": { "message": "讀取圖片失敗" },
   "error_parse_image_failed": { "message": "解析圖片失敗" },
   "error_not_image_file": { "message": "不是圖片檔案" },
-  "error_image_too_large": { "message": "圖片過大，建議壓縮或裁剪後再傳送" }
+  "error_image_too_large": { "message": "圖片過大，建議壓縮或裁剪後再傳送" },
+  "timestamp_yesterday": { "message": "昨天" }
 }
