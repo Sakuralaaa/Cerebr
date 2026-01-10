@@ -112,9 +112,13 @@ class CerebrSidebar {
     this.pageKey = window.location.origin + window.location.pathname;
     this.lastUrl = window.location.href;
     this.sidebar = null;
+    this.fab = null;
+    this.fabPosition = { right: 20, bottom: 100 };
+    this.defaultFabPosition = { right: 20, bottom: 100 };
     this.hideTimeout = null;
     this.saveStateDebounced = this.debounce(() => void this.saveState(), 250);
     this.saveWidthDebounced = this.debounce(() => void this.saveWidth(), 250);
+    this.saveFabPositionDebounced = this.debounce(() => void this.saveFabPosition(), 250);
     this.handleSidebarTransitionEnd = (event) => {
       if (!this.sidebar || event.target !== this.sidebar || event.propertyName !== 'transform') {
         return;
@@ -252,6 +256,7 @@ class CerebrSidebar {
   async loadState() {
     try {
       await this.loadWidth();
+      await this.loadFabPosition();
       const states = await chrome.storage.local.get('sidebarStates');
       const state = states?.sidebarStates?.[this.pageKey];
       this.isVisible = !!state?.isVisible;
@@ -299,6 +304,55 @@ class CerebrSidebar {
         :host {
           all: initial;
           contain: style layout size;
+        }
+        .cerebr-fab {
+          position: fixed;
+          width: 48px;
+          height: 48px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+          cursor: pointer;
+          z-index: 2147483646;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+          touch-action: none;
+          user-select: none;
+          -webkit-user-select: none;
+        }
+        .cerebr-fab:hover {
+          transform: scale(1.08);
+          box-shadow: 0 6px 16px rgba(102, 126, 234, 0.5);
+        }
+        .cerebr-fab:active {
+          transform: scale(0.95);
+        }
+        .cerebr-fab.dragging {
+          transition: none;
+          transform: scale(1.1);
+          box-shadow: 0 8px 24px rgba(102, 126, 234, 0.6);
+        }
+        .cerebr-fab.hidden {
+          opacity: 0;
+          pointer-events: none;
+          transform: scale(0.5);
+        }
+        .cerebr-fab__icon {
+          width: 24px;
+          height: 24px;
+          fill: white;
+          pointer-events: none;
+        }
+        @media (prefers-color-scheme: dark) {
+          .cerebr-fab {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 4px 12px rgba(118, 75, 162, 0.5);
+          }
+          .cerebr-fab:hover {
+            box-shadow: 0 6px 16px rgba(118, 75, 162, 0.6);
+          }
         }
         .cerebr-sidebar {
           position: fixed;
@@ -360,6 +414,9 @@ class CerebrSidebar {
           .cerebr-sidebar.initialized {
             transition: none;
           }
+          .cerebr-fab {
+            transition: none;
+          }
         }
         .cerebr-sidebar__content {
           height: 100%;
@@ -410,8 +467,22 @@ class CerebrSidebar {
       this.sidebar.appendChild(resizer);
       this.sidebar.appendChild(content);
 
+      // 创建悬浮球
+      this.fab = document.createElement('div');
+      this.fab.className = 'cerebr-fab';
+      this.fab.setAttribute('aria-label', 'Toggle Cerebr sidebar');
+      this.fab.innerHTML = `
+        <svg class="cerebr-fab__icon" viewBox="0 0 24 24">
+          <path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/>
+        </svg>
+      `;
+
       shadow.appendChild(style);
+      shadow.appendChild(this.fab);
       shadow.appendChild(this.sidebar);
+
+      // 设置悬浮球事件
+      this.setupFabEventListeners(shadow);
 
       // 先加载状态
       await this.loadState();
@@ -519,6 +590,127 @@ class CerebrSidebar {
       this.applySidebarWidth();
       this.saveWidthDebounced();
     });
+  }
+
+  setupFabEventListeners(shadow) {
+    if (!this.fab) return;
+
+    let isDragging = false;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let startRight = 0;
+    let startBottom = 0;
+    let hasMoved = false;
+    let activePointerId = null;
+
+    const handlePointerMove = (e) => {
+      if (!isDragging) return;
+      const deltaX = dragStartX - e.clientX;
+      const deltaY = dragStartY - e.clientY;
+
+      // Only consider it a drag if moved more than 5px
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+        hasMoved = true;
+      }
+
+      const newRight = Math.max(10, Math.min(window.innerWidth - 58, startRight + deltaX));
+      const newBottom = Math.max(10, Math.min(window.innerHeight - 58, startBottom - deltaY));
+
+      this.fabPosition.right = newRight;
+      this.fabPosition.bottom = newBottom;
+      this.applyFabPosition();
+    };
+
+    const stopDragging = () => {
+      if (!isDragging) return;
+      isDragging = false;
+      this.fab.classList.remove('dragging');
+      window.removeEventListener('pointermove', handlePointerMove, true);
+
+      if (activePointerId !== null) {
+        try {
+          this.fab.releasePointerCapture(activePointerId);
+        } catch {
+          // ignore
+        }
+        activePointerId = null;
+      }
+
+      document.documentElement.style.cursor = '';
+      document.documentElement.style.userSelect = '';
+
+      if (hasMoved) {
+        this.saveFabPositionDebounced();
+      }
+    };
+
+    this.fab.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      e.preventDefault();
+      isDragging = true;
+      hasMoved = false;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      startRight = this.fabPosition.right;
+      startBottom = this.fabPosition.bottom;
+      activePointerId = e.pointerId;
+
+      try {
+        this.fab.setPointerCapture(activePointerId);
+      } catch {
+        // ignore
+      }
+
+      this.fab.classList.add('dragging');
+      document.documentElement.style.cursor = 'grabbing';
+      document.documentElement.style.userSelect = 'none';
+      window.addEventListener('pointermove', handlePointerMove, true);
+      window.addEventListener('pointerup', stopDragging, { once: true, capture: true });
+      window.addEventListener('pointercancel', stopDragging, { once: true, capture: true });
+    }, { passive: false });
+
+    this.fab.addEventListener('click', (e) => {
+      // Only toggle if not dragged
+      if (!hasMoved) {
+        this.toggle();
+      }
+    });
+  }
+
+  applyFabPosition() {
+    if (!this.fab) return;
+    this.fab.style.right = `${this.fabPosition.right}px`;
+    this.fab.style.bottom = `${this.fabPosition.bottom}px`;
+  }
+
+  async loadFabPosition() {
+    try {
+      const { cerebr_fab_position: savedPosition } = await chrome.storage.local.get('cerebr_fab_position');
+      if (savedPosition && typeof savedPosition === 'object') {
+        const right = Number(savedPosition.right);
+        const bottom = Number(savedPosition.bottom);
+        if (Number.isFinite(right) && Number.isFinite(bottom)) {
+          this.fabPosition.right = Math.max(10, Math.min(window.innerWidth - 58, right));
+          this.fabPosition.bottom = Math.max(10, Math.min(window.innerHeight - 58, bottom));
+        }
+      }
+    } catch (error) {
+      console.error('加载悬浮球位置失败:', error);
+    }
+    this.applyFabPosition();
+  }
+
+  async saveFabPosition() {
+    try {
+      await chrome.storage.local.set({
+        cerebr_fab_position: {
+          right: this.fabPosition.right,
+          bottom: this.fabPosition.bottom
+        }
+      });
+    } catch (error) {
+      console.error('保存悬浮球位置失败:', error);
+    }
   }
 
   toggle() {
