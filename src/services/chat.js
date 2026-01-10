@@ -45,19 +45,27 @@ function detectApiFormat(baseUrl, explicitFormat) {
         return explicitFormat;
     }
     
-    const url = baseUrl.toLowerCase();
+    // Parse URL to get hostname for secure comparison
+    let hostname = '';
+    try {
+        const parsedUrl = new URL(baseUrl);
+        hostname = parsedUrl.hostname.toLowerCase();
+    } catch {
+        // If URL parsing fails, fall back to default
+        return 'openai';
+    }
     
-    // Gemini API detection
-    if (url.includes('generativelanguage.googleapis.com') || 
-        url.includes('aiplatform.googleapis.com') ||
-        url.includes('gemini')) {
+    // Gemini API detection - check hostname ends with trusted domains
+    if (hostname === 'generativelanguage.googleapis.com' || 
+        hostname.endsWith('.googleapis.com') ||
+        hostname === 'aiplatform.googleapis.com') {
         return 'gemini';
     }
     
-    // Claude/Anthropic API detection
-    if (url.includes('anthropic.com') || 
-        url.includes('claude') ||
-        url.includes('api.anthropic')) {
+    // Claude/Anthropic API detection - check hostname is or ends with trusted domain
+    if (hostname === 'api.anthropic.com' || 
+        hostname.endsWith('.anthropic.com') ||
+        hostname === 'anthropic.com') {
         return 'claude';
     }
     
