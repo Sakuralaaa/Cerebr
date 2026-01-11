@@ -1118,6 +1118,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (preferencesBackButton && preferencesSettings) {
         preferencesBackButton.addEventListener('click', () => {
             preferencesSettings.classList.remove('visible');
+            // UX improvement: Focus message input after closing preferences
+            messageInput?.focus?.();
         });
     }
 
@@ -1573,6 +1575,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // 返回聊天界面
         backButton?.addEventListener('click', () => {
             apiSettings?.classList?.remove('visible');
+            // UX improvement: Focus message input after closing settings
+            messageInput?.focus?.();
         });
 
     // 图片预览功能

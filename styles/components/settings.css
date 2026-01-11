@@ -3,11 +3,17 @@
     padding: 12px;
     background: none;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
     color: var(--cerebr-icon-color);
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s ease;
+}
+
+#settings-button:hover {
+    background-color: var(--cerebr-message-user-bg);
 }
 
 #settings-button svg {
@@ -62,10 +68,16 @@
     margin: 2px 0;
     -webkit-user-select: none;
     user-select: none;
+    transition: background-color 0.15s ease, transform 0.15s ease;
 }
 
 .menu-item:hover {
     background-color: var(--cerebr-message-user-bg);
+    transform: translateX(2px);
+}
+
+.menu-item:active {
+    transform: translateX(0) scale(0.98);
 }
 
 .menu-item:focus-visible {
