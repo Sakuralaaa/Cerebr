@@ -19,6 +19,43 @@
     transition: margin-top 0.3s ease;
 }
 
+/* 侧边栏收起按钮样式 */
+.sidebar-collapse-btn {
+    position: fixed;
+    top: 12px;
+    right: 12px;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: var(--cerebr-surface-bg);
+    border: 1px solid var(--cerebr-surface-border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cerebr-icon-color);
+    z-index: 101;
+    opacity: 0.7;
+    transition: opacity 0.2s ease, transform 0.2s ease, background-color 0.2s ease;
+    box-shadow: 0 2px 8px var(--cerebr-popup-shadow);
+}
+
+.sidebar-collapse-btn:hover {
+    opacity: 1;
+    background: var(--cerebr-message-user-bg);
+    transform: scale(1.05);
+}
+
+.sidebar-collapse-btn:active {
+    transform: scale(0.95);
+}
+
+.sidebar-collapse-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
 #chat-container::-webkit-scrollbar {
     display: none;
 }

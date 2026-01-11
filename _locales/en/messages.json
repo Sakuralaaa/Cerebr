@@ -5,6 +5,8 @@
   "command_toggle_sidebar_description": { "message": "Toggle Cerebr sidebar" },
   "command_new_chat_description": { "message": "Start a new chat" },
 
+  "aria_collapse_sidebar": { "message": "Collapse sidebar" },
+
   "context_menu_label": { "message": "Message actions" },
   "context_copy_message": { "message": "Copy message" },
   "context_copy_code": { "message": "Copy code" },
