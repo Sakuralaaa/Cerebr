@@ -40,6 +40,11 @@
   "api_delete_config_aria": { "message": "删除该配置" },
   "api_advanced_settings": { "message": "高级设置" },
   "api_system_prompt_label": { "message": "系统提示" },
+  "api_format_label": { "message": "API 格式" },
+  "api_format_aria": { "message": "API 格式选择" },
+  "api_format_openai": { "message": "OpenAI 兼容" },
+  "api_format_gemini": { "message": "Google Gemini" },
+  "api_format_claude": { "message": "Anthropic Claude" },
 
   "title_preferences": { "message": "偏好设置" },
   "preferences_version": { "message": "版本号" },
@@ -118,5 +123,6 @@
   "error_read_image_failed": { "message": "读取图片失败" },
   "error_parse_image_failed": { "message": "解析图片失败" },
   "error_not_image_file": { "message": "不是图片文件" },
-  "error_image_too_large": { "message": "图片过大，建议压缩或裁剪后再发送" }
+  "error_image_too_large": { "message": "图片过大，建议压缩或裁剪后再发送" },
+  "timestamp_yesterday": { "message": "昨天" }
 }

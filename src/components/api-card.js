@@ -4,6 +4,7 @@
  * @property {string} apiKey - API密钥
  * @property {string} baseUrl - API的基础URL
  * @property {string} modelName - 模型名称
+ * @property {string} [apiFormat] - API格式 ("openai" | "gemini" | "claude")
  * @property {Object} advancedSettings - 高级设置
  * @property {string} advancedSettings.systemPrompt - 系统提示
  * @property {boolean} advancedSettings.isExpanded - 高级设置是否展开
@@ -113,6 +114,7 @@ function createAPICard({
     const apiKeyInput = template.querySelector('.api-key');
     const baseUrlInput = template.querySelector('.base-url');
     const modelNameInput = template.querySelector('.model-name');
+    const apiFormatSelect = template.querySelector('.api-format');
     const systemPromptInput = template.querySelector('.system-prompt');
     const advancedSettingsHeader = template.querySelector('.advanced-settings-header');
     const advancedSettingsContent = template.querySelector('.advanced-settings-content');
@@ -122,6 +124,9 @@ function createAPICard({
     apiKeyInput.value = config.apiKey || '';
     baseUrlInput.value = config.baseUrl || 'https://api.openai.com/v1/chat/completions';
     modelNameInput.value = config.modelName || 'gpt-4o';
+    if (apiFormatSelect) {
+        apiFormatSelect.value = config.apiFormat || 'openai';
+    }
 
     // 设置系统提示的默认值
     systemPromptInput.value = config.advancedSettings?.systemPrompt || '';
@@ -144,6 +149,7 @@ function createAPICard({
             apiKey: apiKeyInput.value,
             baseUrl: baseUrlInput.value,
             modelName: modelNameInput.value,
+            apiFormat: apiFormatSelect?.value || 'openai',
             advancedSettings,
         };
     };
@@ -172,6 +178,14 @@ function createAPICard({
     systemPromptInput.addEventListener('change', () => {
         onChange(index, buildNextConfig(), { kind: 'systemPrompt', flush: true });
     });
+
+    // API格式选择：变更时自动保存
+    if (apiFormatSelect) {
+        apiFormatSelect.addEventListener('change', () => {
+            onChange(index, buildNextConfig(), { kind: 'apiFields', flush: true });
+        });
+        apiFormatSelect.addEventListener('click', stopPropagation);
+    }
 
     // 其他字段：实时更新并自动保存（由外层实现节流/同步策略）
     [apiKeyInput, baseUrlInput, modelNameInput].forEach((input) => {

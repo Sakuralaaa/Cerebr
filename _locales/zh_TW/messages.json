@@ -40,6 +40,11 @@
   "api_delete_config_aria": { "message": "刪除此設定" },
   "api_advanced_settings": { "message": "進階設定" },
   "api_system_prompt_label": { "message": "系統提示" },
+  "api_format_label": { "message": "API 格式" },
+  "api_format_aria": { "message": "API 格式選擇" },
+  "api_format_openai": { "message": "OpenAI 相容" },
+  "api_format_gemini": { "message": "Google Gemini" },
+  "api_format_claude": { "message": "Anthropic Claude" },
 
   "title_preferences": { "message": "偏好設定" },
   "preferences_version": { "message": "程式版本" },
@@ -118,5 +123,6 @@
   "error_read_image_failed": { "message": "讀取圖片失敗" },
   "error_parse_image_failed": { "message": "解析圖片失敗" },
   "error_not_image_file": { "message": "不是圖片檔案" },
-  "error_image_too_large": { "message": "圖片過大，建議壓縮或裁剪後再傳送" }
+  "error_image_too_large": { "message": "圖片過大，建議壓縮或裁剪後再傳送" },
+  "timestamp_yesterday": { "message": "昨天" }
 }

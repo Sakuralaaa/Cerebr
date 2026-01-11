@@ -3,6 +3,26 @@ import { showImagePreview, createImageTag, showToast } from '../utils/ui.js';
 import { processMathAndMarkdown, renderMathInElement, textMayContainMath } from '../../htmd/latex.js';
 import { t } from '../utils/i18n.js';
 
+function formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = date.toDateString() === yesterday.toDateString();
+    
+    const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    if (isToday) {
+        return timeStr;
+    } else if (isYesterday) {
+        return `${t('timestamp_yesterday')} ${timeStr}`;
+    } else {
+        const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return `${dateStr} ${timeStr}`;
+    }
+}
+
 function isNearBottom(container, thresholdPx = 120) {
     const remaining = container.scrollHeight - container.scrollTop - container.clientHeight;
     return remaining < thresholdPx;
@@ -290,6 +310,15 @@ export async function appendMessage({
         mainContent.replaceChildren(createTypingIndicator());
     }
     messageDiv.appendChild(mainContent);
+
+    // 添加时间戳
+    const timestamp = typeof text === 'object' && text.timestamp ? text.timestamp : Date.now();
+    const timestampDiv = document.createElement('div');
+    timestampDiv.className = 'message-timestamp';
+    timestampDiv.setAttribute('data-timestamp', timestamp);
+    timestampDiv.textContent = formatTimestamp(timestamp);
+    messageDiv.appendChild(timestampDiv);
+    messageDiv.setAttribute('data-timestamp', timestamp);
 
     // 渲染 LaTeX 公式（仅在可能包含公式时）
     if (textMayContainMath(plainTextContent) || textMayContainMath(reasoningContent)) {

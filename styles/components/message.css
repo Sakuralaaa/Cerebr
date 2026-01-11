@@ -147,3 +147,25 @@
         animation: none;
     }
 }
+
+/* 时间戳样式 */
+.message-timestamp {
+    font-size: 11px;
+    color: var(--cerebr-text-color-secondary, rgba(0, 0, 0, 0.45));
+    margin-top: 6px;
+    text-align: right;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.message:hover .message-timestamp {
+    opacity: 1;
+}
+
+.user-message .message-timestamp {
+    text-align: right;
+}
+
+.ai-message .message-timestamp {
+    text-align: left;
+}
