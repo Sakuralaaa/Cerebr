@@ -179,6 +179,12 @@ function createAPICard({
         onChange(index, buildNextConfig(), { kind: 'systemPrompt', flush: true });
     });
 
+    // 阻止输入框和按钮点击事件冒泡
+    const stopPropagation = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+    };
+
     // API格式选择：变更时自动保存
     if (apiFormatSelect) {
         apiFormatSelect.addEventListener('change', () => {
@@ -193,12 +199,6 @@ function createAPICard({
             onChange(index, buildNextConfig(), { kind: 'apiFields' });
         });
     });
-
-    // 阻止输入框和按钮点击事件冒泡
-    const stopPropagation = (e) => {
-        e.stopPropagation();
-        e.preventDefault();
-    };
 
     // 为输入框添加点击事件阻止冒泡
     [apiKeyInput, baseUrlInput, modelNameInput, systemPromptInput].forEach(input => {

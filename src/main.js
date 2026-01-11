@@ -362,6 +362,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         webpageQAContainer.style.display = 'none';
     }
 
+    // 侧边栏收起按钮 - 仅在扩展环境中显示
+    const sidebarCollapseBtn = document.getElementById('sidebar-collapse-btn');
+    if (isExtensionEnvironment && sidebarCollapseBtn) {
+        sidebarCollapseBtn.style.display = 'flex';
+        sidebarCollapseBtn.addEventListener('click', () => {
+            // 通知父窗口（content.js）切换侧边栏
+            window.parent.postMessage({ type: 'TOGGLE_SIDEBAR' }, '*');
+        });
+    }
+
     // 草稿：按对话保存输入框文字（不保存图片，避免存储膨胀）
     const DRAFT_KEY_PREFIX = 'cerebr_draft_v1_';
     const draftKeyForChatId = (chatId) => `${DRAFT_KEY_PREFIX}${chatId}`;

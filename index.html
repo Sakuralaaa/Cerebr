@@ -22,6 +22,12 @@
     <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
+    <button id="sidebar-collapse-btn" class="sidebar-collapse-btn" aria-label="收起侧边栏" data-i18n-attr="aria-label:aria_collapse_sidebar" style="display: none;">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="13 17 18 12 13 7"></polyline>
+            <polyline points="6 17 11 12 6 7"></polyline>
+        </svg>
+    </button>
     <div id="chat-container"></div>
     <div id="context-menu" role="menu" aria-label="消息操作菜单" data-i18n-attr="aria-label:context_menu_label">
         <div class="context-menu-item" id="copy-message" role="menuitem" tabindex="0">

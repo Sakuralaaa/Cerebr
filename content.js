@@ -866,6 +866,16 @@ try {
   console.error('创建侧边栏实例失败:', error);
 }
 
+// 监听来自 iframe 的消息
+window.addEventListener('message', (event) => {
+  // 处理侧边栏切换请求
+  if (event.data?.type === 'TOGGLE_SIDEBAR') {
+    if (sidebar) {
+      sidebar.toggle();
+    }
+  }
+});
+
 let inFlightPageContentPromise = null;
 
 // 修改消息监听器
